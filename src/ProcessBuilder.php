@@ -11,6 +11,8 @@ class ProcessBuilder
 
     private $env = null;
 
+    private $workingDirectory = null;
+
     public function setCommand($executablePath)
     {
         $this->command = $executablePath;
@@ -42,7 +44,17 @@ class ProcessBuilder
 
     public function getEnvironment()
     {
-        return $this->env;
+        return $this->env ?: $_ENV;
+    }
+
+    public function setWorkingDirectory($path)
+    {
+        $this->workingDirectory = $path;
+    }
+
+    public function getWorkingDirectory()
+    {
+        return $this->workingDirectory ?: getcwd();
     }
 
     /**
@@ -53,6 +65,7 @@ class ProcessBuilder
     public function run()
     {
         $cmd = trim(sprintf('%s %s', $this->command, implode(' ', $this->args)));
+
         $descriptorspec = [
             0 => [ 'pipe', 'r' ],
             1 => [ 'pipe', 'w' ],
@@ -60,7 +73,10 @@ class ProcessBuilder
         ];
         $pipes = [];
 
-        $process = proc_open($cmd, $descriptorspec, $pipes);
+        $env = $this->getEnvironment();
+        $cwd = $this->getWorkingDirectory();
+
+        $process = proc_open($cmd, $descriptorspec, $pipes, $cwd, $env);
 
         if ($process !== false) {
             return new AttachedProcess($process, $pipes, (new InspectorFactory())->create());
