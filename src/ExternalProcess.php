@@ -4,7 +4,9 @@ namespace Aztech\Process;
 
 class ExternalProcess extends AbstractProcess
 {
-
+	
+	private $inspector;
+	
     public function __construct($pid, Inspector $inspector = null)
     {
         $this->pid = $pid;
@@ -16,6 +18,8 @@ class ExternalProcess extends AbstractProcess
         }
 
         $this->inspect($inspector ?: (new InspectorFactory())->create());
+        
+        parent::__construct($this->inspector->getSignalEmitter());
     }
 
     private function inspect(Inspector $inspector)

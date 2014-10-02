@@ -21,6 +21,7 @@ class CurrentProcessInspector implements Inspector
         $process->setArguments($argv);
         $process->setEnvironment($_ENV);
         $process->setParentId(function_exists('posix_getppid') ? posix_getppid() : 0);
+        $process->setWorkingDirectory(getcwd());
 
         return $process;
     }
@@ -28,5 +29,10 @@ class CurrentProcessInspector implements Inspector
     public function getProcessPipes(ProcessInfo $process)
     {
         return [];
+    }
+    
+    public function getSignalEmitter()
+    {
+    	return null;
     }
 }

@@ -10,9 +10,6 @@ $pid = $argv[1];
 
 $process = new ExternalProcess($pid);
 
-$process->kill(SIGTSTP);
-$process->kill(SIGCONT);
-
 $mainPid = CurrentProcess::getInstance()->getPid();
 echo $mainPid . ' : Main process PID ' . CurrentProcess::getInstance()->getPid() . PHP_EOL;
 echo $mainPid . ' : Parent process PID ' . CurrentProcess::getInstance()->getInfo()->getParentId() . PHP_EOL;
@@ -25,8 +22,8 @@ $task = function() use($pid) {
     echo $pid .  ' : Child started' . PHP_EOL;
     echo $pid .  ' : Parent process PID ' . CurrentProcess::getInstance()->getInfo()->getParentId() . PHP_EOL;
 
-    $process->kill(SIGTSTP);
-    $process->kill(SIGCONT);
+    $process->kill(9);
+    $process->kill(9);
 
     CurrentProcess::getInstance()->fork(function () {
         $pid = CurrentProcess::getInstance()->getPid();
@@ -40,6 +37,7 @@ $task = function() use($pid) {
     });
 
     echo $pid .  ' : Restarting PID ' . CurrentProcess::getInstance()->getPid() . PHP_EOL;
+    
     CurrentProcess::getInstance()->restart();
     CurrentProcess::getInstance()->wait();
 

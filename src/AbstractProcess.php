@@ -4,12 +4,19 @@ namespace Aztech\Process;
 
 abstract class AbstractProcess implements Process
 {
+	protected $signalEmitter = null;
+	
     protected $pid = 0;
 
     protected $info = null;
 
     protected $pipes = [];
 
+    protected function __construct(SignalEmitter $emitter)
+    {
+    	$this->signalEmitter = $emitter;
+    }
+    
     public function getPid()
     {
         return $this->pid;
@@ -41,10 +48,6 @@ abstract class AbstractProcess implements Process
 
     public function kill($signal)
     {
-        if ($this->info->getUid() !== CurrentProcess::getInstance()->getInfo()->getUid()) {
-            throw new \BadMethodCallException('Cannot kill process (no such privilege).');
-        }
-
-        return posix_kill($this->pid, $signal);
+    	return $this->signalEmitter->kill($this->pid, $signal);
     }
 }

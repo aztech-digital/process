@@ -17,6 +17,8 @@ class ProcessInfo
     private $name;
 
     private $binPath;
+    
+    private $workingDirectory;
 
     public function __construct($pid, $uid, $name)
     {
@@ -44,6 +46,11 @@ class ProcessInfo
     {
         $this->args = $arguments;
     }
+    
+    public function setWorkingDirectory($directory = null) 
+    {
+    	$this->workingDirectory = $directory;
+    }
 
     public function getPid()
     {
@@ -65,6 +72,11 @@ class ProcessInfo
         return $this->name;
     }
 
+    public function getCommandLine()
+    {
+    	return trim(sprintf('%s %s', $this->binPath, implode(' ', $this->args)));
+    }
+    
     public function getEnvironment()
     {
         return $this->env;
@@ -78,5 +90,10 @@ class ProcessInfo
     public function getBinaryPath()
     {
         return $this->binPath;
+    }
+    
+    public function getWorkingDirectory()
+    {
+    	return $this->workingDirectory ?: getcwd();
     }
 }

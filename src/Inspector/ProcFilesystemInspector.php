@@ -4,6 +4,7 @@ namespace Aztech\Process\Inspector;
 
 use Aztech\Process\Inspector;
 use Aztech\Process\ProcessInfo;
+use Aztech\Process\SignalEmitter\PosixSignalEmitter;
 
 class ProcFilesystemInspector implements Inspector
 {
@@ -109,5 +110,10 @@ class ProcFilesystemInspector implements Inspector
         }
 
         return $pipes;
+    }
+    
+    public function getSignalEmitter()
+    {
+    	return new PosixSignalEmitter();
     }
 }

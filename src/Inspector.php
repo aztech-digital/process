@@ -12,4 +12,6 @@ interface Inspector
     function getProcessInfo($pid);
 
     function getProcessPipes(ProcessInfo $processInfo);
+    
+    function getSignalEmitter();
 }

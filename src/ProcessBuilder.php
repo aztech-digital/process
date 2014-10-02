@@ -71,11 +71,17 @@ class ProcessBuilder
             1 => [ 'pipe', 'w' ],
             2 => [ 'file', 'php://stderr', 'a' ]
         ];
+        $options = [];
         $pipes = [];
 
         $env = $this->getEnvironment();
         $cwd = $this->getWorkingDirectory();
-
+        
+        if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+        	$options['bypass_shell'] = true;
+        	$cmd = sprintf('cmd /V:ON /E:ON /C "%s"', escapeshellcmd($cmd));
+        }
+        
         $process = proc_open($cmd, $descriptorspec, $pipes, $cwd, $env);
 
         if ($process !== false) {

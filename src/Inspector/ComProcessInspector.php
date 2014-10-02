@@ -4,24 +4,23 @@ namespace Aztech\Process\Inspector;
 
 use Aztech\Process\Inspector;
 use Aztech\Process\ProcessInfo;
+use Aztech\Process\Com\ComProcessLocator;
+use Aztech\Process\SignalEmitter\ComSignalEmitter;
 
 class ComProcessInspector implements Inspector
 {
 
+	private $locator;
+	
+	public function __construct(ComProcessLocator $locator = null)
+	{
+		$this->locator = $locator ?: new ComProcessLocator();
+	}
+	
     public function getProcessInfo($pid)
     {
-        $WbemLocator = new \COM("WbemScripting.SWbemLocator");
-        $WbemServices = $WbemLocator->ConnectServer(php_uname("n"), 'root\\cimv2');
-        $WbemServices->Security_->ImpersonationLevel = 3;
-
-        $processes = $WbemServices->ExecQuery("SELECT * FROM Win32_Process WHERE ProcessId = " . intval($pid));
-
-        if (empty($processes)) {
-            throw new \RuntimeException('Process not found.');
-        }
-
-        $process = $processes[0];
-
+        $process = $this->locator->getProcess($pid);
+        
         $sid = null;
         $process->getOwnerSid($sid);
 
@@ -36,5 +35,10 @@ class ComProcessInspector implements Inspector
     public function getProcessPipes(ProcessInfo $processInfo)
     {
         return [];
+    }
+    
+    public function getSignalEmitter()
+    {
+    	return new ComSignalEmitter($this->locator);
     }
 }

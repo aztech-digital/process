@@ -3,6 +3,11 @@
 namespace Aztech\Process;
 
 use Aztech\Process\Inspector\CurrentProcessInspector;
+use Aztech\Process\ProcessControl\ComProcessControl;
+use Aztech\Process\ProcessControl\PcntlProcessControl;
+use Aztech\Process\Com\ComProcessLocator;
+use Aztech\Process\SignalEmitter\PosixSignalEmitter;
+use Aztech\Process\SignalEmitter\ComSignalEmitter;
 
 final class CurrentProcess extends AbstractProcess
 {
@@ -21,6 +26,11 @@ final class CurrentProcess extends AbstractProcess
 
         return self::$instance;
     }
+    
+    private static function isWindows()
+    {
+    	return strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+    }
 
     private $depth = 0;
 
@@ -28,13 +38,15 @@ final class CurrentProcess extends AbstractProcess
 
     private $killOnExit = [];
 
+    private $processControl = null;
+    
     /**
      *
      * @var ProcessInfo
      */
     private $process;
 
-    private function __construct()
+    protected function __construct()
     {
         $inspector = new CurrentProcessInspector();
 
@@ -43,12 +55,19 @@ final class CurrentProcess extends AbstractProcess
         }
 
         $this->pid = getmypid();
+        $this->processControl = new PcntlProcessControl();
         $this->info = $inspector->getProcessInfo(getmypid());
         $this->pipes = [
             STDIN,
             STDOUT,
             STDERR
         ];
+
+        if ($this->isWindows()) {
+        	$this->processControl = new ComProcessControl();
+        }
+        
+        parent::__construct($this->isWindows() ? new ComSignalEmitter(new ComProcessLocator()) : new PosixSignalEmitter());
     }
 
     public function __destruct()
@@ -57,7 +76,7 @@ final class CurrentProcess extends AbstractProcess
             posix_kill($pid, SIGKILL);
         }
     }
-
+    
     public function isFork()
     {
         return $this->depth > 0;
@@ -68,8 +87,29 @@ final class CurrentProcess extends AbstractProcess
         return $this->depth;
     }
 
+    private function _yieldFork(callable $task)
+    {
+    	
+    }
+    
+    private function yieldFork(callable $task)
+    {
+    	call_user_func($task);
+    	
+    	$this->depth--;
+    	
+	    yield;
+    }
+    
     public function fork(callable $task, $daemonize = true)
     {
+    	if ($this->isWindows()) {
+    		$this->depth++;
+    		$this->children[$this->depth][] = $this->yieldFork($task);
+    		
+    		return;
+    	}
+    	
         if ($this->depth > 5) {
             throw new \BadMethodCallException('Too many nested forks !');
         }
@@ -87,42 +127,26 @@ final class CurrentProcess extends AbstractProcess
         if (! $daemonize) {
             $this->killOnExit[] = $pid;
         }
-
-        return $pid;
     }
 
     public function restart()
     {
-        if ($this->isFork()) {
-            return false;
-        }
-
-        $info = $this->info;
-
-        return pcntl_exec($info->getBinaryPath(), $info->getArguments());
+    	if ($this->depth == 0) { 
+        	return $this->processControl->restart($this);
+    	}
+    	
+    	return false;
     }
 
     public function waitFor($childPid)
     {
-        $status = null;
-
-        pcntl_waitpid($childPid, $status);
+        return $this->processControl->waitFor($childPid);
     }
 
     public function wait()
     {
-        $status = null;
-
-        while (count($this->children)) {
-            for ($i = count($this->children) - 1; $i >= 0; $i --) {
-                if (pcntl_waitpid($this->children[$i], $status, WNOHANG) == $this->children[$i]) {
-                    unset($this->children[$i]);
-
-                    continue;
-                }
-
-                usleep(250000);
-            }
-        }
+    	echo 'Waiting on children...' . PHP_EOL;
+    	
+        return $this->processControl->wait($this->children[$this->depth]);
     }
 }

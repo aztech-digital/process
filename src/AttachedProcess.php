@@ -20,6 +20,8 @@ class AttachedProcess extends AbstractProcess
 
         $this->pid = $status['pid'];
         $this->info = $inspector->getProcessInfo($this->pid);
+        
+        parent::__construct($inspector->getSignalEmitter());
     }
 
     public function writeStdIn($text)
